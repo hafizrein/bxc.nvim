@@ -57,7 +57,10 @@ build another frontend on it.
 
 ### 1. The MCP server (agent side)
 
-Point your agent's MCP config at the server. For omp (`~/.omp/agent/mcp.json`):
+Point your agent's MCP config at the server. For omp (`~/.omp/agent/mcp.json`) — note omp's
+key is **`environment`**, not the `env` that Hermes/Claude-style clients use; omp silently
+drops `env`, which leaves the server on its `$HOME`-derived default log path while your
+editor reads a different one:
 
 ```json
 {
@@ -65,7 +68,7 @@ Point your agent's MCP config at the server. For omp (`~/.omp/agent/mcp.json`):
     "bxc": {
       "command": "node",
       "args": ["/absolute/path/to/bxc.nvim/mcp/bxc-mcp.mjs"],
-      "env": {
+      "environment": {
         "BXC_SANDBOX_ID": "sbx_xxxxxxxxxxxxxxxxxxxx",
         "BXC_HOME": "/home/you/.omp/bxc"
       }
@@ -73,6 +76,11 @@ Point your agent's MCP config at the server. For omp (`~/.omp/agent/mcp.json`):
   }
 }
 ```
+
+For Hermes Agent and other clients that follow the Claude schema, use `env` with the same
+body. Whichever key your client wants, `BXC_HOME` must equal the plugin's `home`, or the
+rail stays empty while the tool calls succeed — the symptoms look like a broken plugin and
+are actually two processes writing and reading different files.
 
 The key is found automatically — `BXC_TOKEN`, then `$BXC_HOME/token`, then
 `~/boxcompute/credential` (what `bxc auth` writes). Keep it out of the JSON.
