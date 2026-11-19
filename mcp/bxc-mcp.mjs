@@ -455,6 +455,13 @@ function send(msg) {
 }
 
 const rl = createInterface({ input: process.stdin });
+let inflight = 0;
+let closing = false;
+
+function maybeExit() {
+  if (closing && inflight === 0) process.exit(0);
+}
+
 rl.on("line", async (line) => {
   const raw = line.trim();
   if (!raw) return;
@@ -492,10 +499,17 @@ rl.on("line", async (line) => {
     }
     if (method === "tools/list") return send({ jsonrpc: "2.0", id, result: { tools: TOOLS } });
     if (method === "tools/call") {
-      const out = await callTool(params?.name, params?.arguments || {});
-      // callTool returns a bare content array on success, {content,isError} on failure.
-      const result = Array.isArray(out) ? { content: out } : { content: out.content, isError: !!out.isError };
-      return send({ jsonrpc: "2.0", id, result });
+      inflight++;
+      try {
+        const out = await callTool(params?.name, params?.arguments || {});
+        // callTool returns a bare content array on success, {content,isError} on failure.
+        const result = Array.isArray(out) ? { content: out } : { content: out.content, isError: !!out.isError };
+        send({ jsonrpc: "2.0", id, result });
+      } finally {
+        inflight--;
+        maybeExit();
+      }
+      return;
     }
     if (method === "ping") return send({ jsonrpc: "2.0", id, result: {} });
     return send({ jsonrpc: "2.0", id, error: { code: -32601, message: `unknown method ${method}` } });
@@ -503,4 +517,10 @@ rl.on("line", async (line) => {
     return send({ jsonrpc: "2.0", id, error: { code: -32603, message: String(err.message || err) } });
   }
 });
-rl.on("close", () => process.exit(0));
+// stdin closing is not permission to abandon work already in progress: a piped/scripted
+// client sends every line at once, so EOF arrives while the first tool call is still on the
+// wire. Exit only once nothing is in flight (this bug ate every call in a piped run).
+rl.on("close", () => {
+  closing = true;
+  maybeExit();
+});
