@@ -162,13 +162,42 @@ local function append_art(path, label)
   local cfg = config.options.stream or {}
   local cols = cfg.art_cols or 54
   local rows = cfg.art_rows or 13
+
+  if label and label ~= "" then
+    append({ "   ⤷ " .. label }, { "BxcStreamDim" })
+  end
+
+  -- A terminal with the kitty graphics protocol (ghostty, kitty, wezterm) gets the real
+  -- PNG drawn in the buffer; everything else falls back to chafa colour blocks, which is
+  -- what Windows Terminal needs.
+  local snacks_ok, snacks = pcall(require, "snacks.image")
+  if snacks_ok and snacks.supports and snacks.supports(path) then
+    local placement_ok, placement = pcall(require, "snacks.image.placement")
+    if placement_ok and placement and placement.new then
+      local first = vim.api.nvim_buf_line_count(state.buf)
+      local blanks = {}
+      for _ = 1, rows do
+        table.insert(blanks, "")
+      end
+      vim.bo[state.buf].modifiable = true
+      vim.api.nvim_buf_set_lines(state.buf, first, -1, false, blanks)
+      local placed = pcall(placement.new, state.buf, path, {
+        pos = { first + 1, 2 },
+        width = cols,
+        height = rows,
+      })
+      if placed then
+        state.images = state.images + 1
+        return
+      end
+      -- fall through to chafa if the placement failed for any reason
+    end
+  end
+
   local chunks = proof.chafa_rows(path, cols, rows)
   if not chunks then
     append({ "   (image: " .. vim.fn.fnamemodify(path, ":t") .. ")" }, { "BxcStreamDim" })
     return
-  end
-  if label and label ~= "" then
-    append({ "   ⤷ " .. label }, { "BxcStreamDim" })
   end
   state.images = state.images + 1
   local first = vim.api.nvim_buf_line_count(state.buf)
