@@ -285,6 +285,9 @@ local function handle_record(rec)
     end
     local snippet = ""
     if text then
+      -- Tool output can carry terminal escapes (a shell tool reading a live tty emits
+      -- DECSET codes). Strip them: they render as literal ^[[?25h noise in the stream.
+      text = text:gsub("\27%[[%d;?]*[a-zA-Z]", ""):gsub("\27%][^\7]*\7", ""):gsub("\r", "")
       local first_line = vim.split(text, "\n", { plain = true })[1] or ""
       snippet = first_line:sub(1, 68)
     end
@@ -393,6 +396,7 @@ function M.open(opts)
   vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].swapfile = false
   vim.bo[buf].filetype = "bxcstream"
+  pcall(vim.api.nvim_buf_set_name, buf, "bxc://omp-stream")
 
   local width = cfg.width or 78
   vim.cmd("botright " .. width .. "vsplit")
