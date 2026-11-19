@@ -99,7 +99,7 @@ The key is found automatically — `BXC_TOKEN`, then `$BXC_HOME/token`, then
       live = { refresh_ms = 700, width = 118, height = 40 },
     })
   end,
-  cmd = { "Bxc", "BxcWindow", "BxcProof", "BxcLive", "BxcStatus" },
+  cmd = { "Bxc", "BxcWindow", "BxcStream", "BxcProof", "BxcLive", "BxcStatus" },
 }
 ```
 
