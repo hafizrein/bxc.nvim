@@ -297,7 +297,12 @@ local function handle_record(rec)
     if text then
       -- Tool output can carry terminal escapes (a shell tool reading a live tty emits
       -- DECSET codes). Strip them: they render as literal ^[[?25h noise in the stream.
-      text = text:gsub("\27%[[%d;?]*[a-zA-Z]", ""):gsub("\27%][^\7]*\7", ""):gsub("\r", "")
+      -- omp stores some of these already caret-escaped ("^[[?25l"), so both forms go.
+      text = text
+        :gsub("\27%[[%d;?]*[a-zA-Z]", "")
+        :gsub("%^%[%[[%d;?]*%a", "")
+        :gsub("\27%][^\7]*\7", "")
+        :gsub("\r", "")
       local first_line = vim.split(text, "\n", { plain = true })[1] or ""
       snippet = first_line:sub(1, 68)
     end
