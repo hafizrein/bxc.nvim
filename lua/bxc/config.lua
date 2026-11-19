@@ -12,10 +12,12 @@ M.defaults = {
   -- The live agent stream (:BxcStream): follows omp's own session transcript and renders
   -- what it is doing, with each screenshot it receives drawn inline.
   stream = {
-    width = 78,
+    width = 100,
     refresh_ms = 400,
-    art_cols = 54,
-    art_rows = 13,
+    -- A 1280x800 screenshot squashed into 60x14 cells is illegible; these defaults are the
+    -- smallest that still read as a picture inside a normal split.
+    art_cols = 92,
+    art_rows = 26,
     sessions_dir = nil, -- default: <omp agent dir>/sessions
     follow_newest = true, -- switch to a new session when one starts
   },

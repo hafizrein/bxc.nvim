@@ -43,36 +43,50 @@ end
 
 local group_cache = {}
 
-local function color_group(hex)
-  local name = "BxcFg" .. hex:gsub("#", "")
-  if not group_cache[name] then
-    vim.api.nvim_set_hl(0, name, { fg = hex })
-    group_cache[name] = true
+--- One highlight group per (fg,bg) pair, cached by colour so a frame creates a handful of
+--- groups rather than one per cell.
+local function color_group(fg, bg)
+  local key = (fg or "-") .. (bg or "-")
+  local cached = group_cache[key]
+  if cached then
+    return cached
   end
+  local name = "BxcArt" .. vim.fn.sha256(key):sub(1, 10)
+  local spec = { default = true }
+  if fg then
+    spec.fg = fg
+  end
+  if bg then
+    spec.bg = bg
+  end
+  vim.api.nvim_set_hl(0, name, spec)
+  group_cache[key] = name
   return name
 end
 
 --- Turn one line of ANSI into virt_text chunks: { {text, group}, ... }
---- Understands \e[38;5;Nm, \e[38;2;r;g;bm, \e[39m and \e[0m; anything else is dropped
---- from the escape and its text kept, so a format change degrades to plain art.
+---
+--- chafa mixes foreground and background in a single SGR ("\e[38;5;60;48;5;239m▋") and
+--- then sends background-only sequences ("\e[48;5;16m▆"). An earlier version read only
+--- parts[1], so every background colour was dropped and the picture came out as flat grey
+--- mush. This walks every parameter instead.
 function M.ansi_chunks(line)
   local chunks = {}
-  local group = "BxcProofArt"
+  local fg, bg = nil, nil
   local buffer = {}
-  local i = 1
 
   local function flush()
     if #buffer > 0 then
-      table.insert(chunks, { table.concat(buffer), group })
+      table.insert(chunks, { table.concat(buffer), (fg or bg) and color_group(fg, bg) or "BxcProofArt" })
       buffer = {}
     end
   end
 
+  local i = 1
   while i <= #line do
-    local sgr = line:find("\27%[([%d;]*)m", i)
+    local sgr = line:find("\27%[[%d;]*m", i)
     if not sgr then
       local rest = line:sub(i)
-      -- chafa separates cells with a space; keep it, it is part of the art.
       if rest ~= "" then
         table.insert(buffer, rest)
       end
@@ -82,32 +96,62 @@ function M.ansi_chunks(line)
     if before ~= "" then
       table.insert(buffer, before)
     end
-    local params = line:match("\27%[([%d;]*)m", sgr)
+
+    local seq = line:match("\27%[[%d;]*m", sgr)
+    -- NOTE: the capture must be [%d;]*, not %d*;* — the latter only accepts all digits
+    -- followed by all semicolons, so it fails on "38;5;60;48;5;239" and every sequence
+    -- degrades to a reset (which silently turns the whole picture flat).
+    local params = seq:match("%[([%d;]*)m") or ""
     local parts = {}
-    for p in (params or ""):gmatch("[^;]+") do
+    for p in params:gmatch("%d+") do
       table.insert(parts, tonumber(p))
     end
-    local handled = false
-    if parts[1] == 38 and parts[2] == 5 and parts[3] then
-      local hex = ansi_to_hex(parts[3])
-      if hex then
-        flush()
-        group = color_group(hex)
-        handled = true
+    if #parts == 0 then
+      parts = { 0 }
+    end
+
+    local nfg, nbg = fg, bg
+    local changed = false
+    local k = 1
+    while k <= #parts do
+      local p = parts[k]
+      if p == 38 and parts[k + 1] == 5 and parts[k + 2] then
+        nfg = ansi_to_hex(parts[k + 2])
+        changed = true
+        k = k + 3
+      elseif p == 48 and parts[k + 1] == 5 and parts[k + 2] then
+        nbg = ansi_to_hex(parts[k + 2])
+        changed = true
+        k = k + 3
+      elseif p == 38 and parts[k + 1] == 2 and parts[k + 4] then
+        nfg = string.format("#%02x%02x%02x", parts[k + 2], parts[k + 3], parts[k + 4])
+        changed = true
+        k = k + 5
+      elseif p == 48 and parts[k + 1] == 2 and parts[k + 4] then
+        nbg = string.format("#%02x%02x%02x", parts[k + 2], parts[k + 3], parts[k + 4])
+        changed = true
+        k = k + 5
+      elseif p == 0 then
+        nfg, nbg = nil, nil
+        changed = true
+        k = k + 1
+      elseif p == 39 then
+        nfg = nil
+        changed = true
+        k = k + 1
+      elseif p == 49 then
+        nbg = nil
+        changed = true
+        k = k + 1
+      else
+        k = k + 1
       end
-    elseif parts[1] == 38 and parts[2] == 2 and parts[3] and parts[4] and parts[5] then
-      flush()
-      group = color_group(string.format("#%02x%02x%02x", parts[3], parts[4], parts[5]))
-      handled = true
-    elseif parts[1] == 0 or parts[1] == 39 or (params == "") then
-      flush()
-      group = "BxcProofArt"
-      handled = true
     end
-    if not handled then
-      -- Unrelated SGR (bold/background/etc): drop the escape, keep the text.
+    if changed then
+      flush()
+      fg, bg = nfg, nbg
     end
-    i = sgr + (line:match("\27%[[%d;]*m", sgr) or ""):len()
+    i = sgr + #seq
   end
   flush()
   return chunks

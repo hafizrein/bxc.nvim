@@ -16,13 +16,13 @@ local function opts()
 end
 
 local function hl()
-  vim.api.nvim_set_hl(0, "BxcHeader", { fg = "#8ec07c", bold = true, default = true })
-  vim.api.nvim_set_hl(0, "BxcDim", { fg = "#928374", default = true })
-  vim.api.nvim_set_hl(0, "BxcOk", { fg = "#b8bb26", default = true })
-  vim.api.nvim_set_hl(0, "BxcFail", { fg = "#fb4934", bold = true, default = true })
-  vim.api.nvim_set_hl(0, "BxcProofNormal", { bg = "#1d2021", default = true })
-  vim.api.nvim_set_hl(0, "BxcProofMeta", { fg = "#a89984", default = true })
-  vim.api.nvim_set_hl(0, "BxcProofArt", { fg = "#d5c4a1", default = true })
+  vim.api.nvim_set_hl(0, "BxcHeader", { link = "Title", default = true })
+  vim.api.nvim_set_hl(0, "BxcDim", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "BxcOk", { link = "DiagnosticOk", default = true })
+  vim.api.nvim_set_hl(0, "BxcFail", { link = "DiagnosticError", default = true })
+  vim.api.nvim_set_hl(0, "BxcProofNormal", { link = "NormalFloat", default = true })
+  vim.api.nvim_set_hl(0, "BxcProofMeta", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "BxcProofArt", { link = "Normal", default = true })
 end
 
 --- Latest phase carrying a viewer URL, for `:BxcLive`.

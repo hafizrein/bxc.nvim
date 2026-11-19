@@ -35,14 +35,19 @@ local state = {
 }
 
 local function hl()
-  vim.api.nvim_set_hl(0, "BxcStreamHead", { fg = "#8ec07c", bold = true, default = true })
-  vim.api.nvim_set_hl(0, "BxcStreamUser", { fg = "#fabd2f", bold = true, default = true })
-  vim.api.nvim_set_hl(0, "BxcStreamAgent", { fg = "#d5c4a1", default = true })
-  vim.api.nvim_set_hl(0, "BxcStreamTool", { fg = "#83a598", default = true })
-  vim.api.nvim_set_hl(0, "BxcStreamResult", { fg = "#8ec07c", default = true })
-  vim.api.nvim_set_hl(0, "BxcStreamErr", { fg = "#fb4934", default = true })
-  vim.api.nvim_set_hl(0, "BxcStreamDim", { fg = "#928374", default = true })
-  vim.api.nvim_set_hl(0, "BxcStreamArt", { fg = "#d5c4a1", default = true })
+  -- Link to the standard groups so the pane inherits the user's colorscheme instead of
+  -- shipping a palette that clashes with LazyVim (it will pick up whatever theme is live).
+  local function link(from, to)
+    vim.api.nvim_set_hl(0, from, { link = to, default = true })
+  end
+  link("BxcStreamHead", "Title")
+  link("BxcStreamUser", "Special")
+  link("BxcStreamAgent", "Normal")
+  link("BxcStreamTool", "Function")
+  link("BxcStreamResult", "String")
+  link("BxcStreamErr", "DiagnosticError")
+  link("BxcStreamDim", "Comment")
+  link("BxcStreamArt", "Normal")
 end
 
 -- ── locating + tailing the transcript ───────────────────────────────────────
