@@ -345,6 +345,21 @@ local function handle_record(rec)
     end
     if image_path then
       append_art(image_path, nil)
+    elseif text then
+      -- Plenty of tool results carry the screenshot as a bare PATH rather than an image
+      -- block: omp's eval/bash tools echo "/root/.omp/bxc/shots/....png" verbatim, and the
+      -- bxc tools return {"shot": "..."} as text. Without this the stream showed the path
+      -- and nothing else, which reads as "no screenshot at all".
+      local shown = 0
+      for path in text:gmatch("(/[%w%._%-/]+%.png)") do
+        if shown >= 2 then
+          break
+        end
+        if vim.uv.fs_stat(path) then
+          append_art(path, nil)
+          shown = shown + 1
+        end
+      end
     end
   end
 end
