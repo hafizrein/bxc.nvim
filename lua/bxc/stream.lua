@@ -253,13 +253,23 @@ local function handle_record(rec)
   if role == "assistant" then
     for _, block in ipairs(content) do
       if block.type == "text" and block.text and block.text ~= "" then
-        local text = vim.split(block.text, "\n", { plain = true })
+        local body = block.text:gsub("\27%[[%d;?]*[a-zA-Z]", ""):gsub("\r", "")
+        local text = vim.split(body, "\n", { plain = true })
         local lines, groups = {}, {}
-        for i, line in ipairs(text) do
-          table.insert(lines, (i == 1 and "  " or "  ") .. line)
+        for _, line in ipairs(text) do
+          table.insert(lines, "  " .. line)
           table.insert(groups, "BxcStreamAgent")
         end
         append(lines, groups)
+        -- The agent often *writes* its proof into the message as markdown
+        -- (![after Return](/path/shot.png)) rather than relying on the tool result.
+        -- Render those images too, otherwise the "screenshot in the output" only
+        -- appears for tool results and the prose reads like a broken link.
+        for alt, path in body:gmatch("!%[([^%]]*)%]%(([^%s%)]+)%)") do
+          if uv.fs_stat(path) then
+            append_art(path, alt ~= "" and alt or nil)
+          end
+        end
       elseif block.type == "toolCall" then
         local head, intent = summarize_call(block.name or "?", block.arguments or {})
         local lines, groups = { head }, { "BxcStreamTool" }
