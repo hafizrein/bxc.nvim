@@ -142,7 +142,6 @@ local function append(lines, groups)
   local start = vim.api.nvim_buf_line_count(state.buf)
   vim.bo[state.buf].modifiable = true
   vim.api.nvim_buf_set_lines(state.buf, start, -1, false, lines)
-  vim.bo[state.buf].modifiable = false
   for i, group in ipairs(groups) do
     if group then
       vim.api.nvim_buf_set_extmark(state.buf, ns, start + i - 1, 0, {
@@ -174,7 +173,6 @@ local function append_art(path, label)
   end
   vim.bo[state.buf].modifiable = true
   vim.api.nvim_buf_set_lines(state.buf, first, -1, false, blanks)
-  vim.bo[state.buf].modifiable = false
   for idx, chunk in ipairs(chunks) do
     vim.api.nvim_buf_set_extmark(state.buf, ns, first + idx - 1, 0, {
       virt_text = chunk,
@@ -362,6 +360,9 @@ local function header()
   end
   local name = state.session and vim.fn.fnamemodify(state.session, ":t") or "waiting for a session…"
   local text = string.format(" omp · %s · %d events · %d screenshots", name:sub(1, 46), state.items, state.images)
+  -- The buffer stays modifiable for the life of the window: this is a live tail, not a
+  -- document. Toggling modifiable here caused nvim_buf_set_lines errors on every tick.
+  vim.bo[state.buf].modifiable = true
   vim.api.nvim_buf_set_lines(state.buf, 0, 1, false, { text })
   vim.api.nvim_buf_set_extmark(state.buf, ns, 0, 0, { end_col = #text, hl_group = "BxcStreamHead" })
 end
