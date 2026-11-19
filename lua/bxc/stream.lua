@@ -287,7 +287,10 @@ local function handle_record(rec)
   if role == "assistant" then
     for _, block in ipairs(content) do
       if block.type == "text" and block.text and block.text ~= "" then
-        local body = block.text:gsub("\27%[[%d;?]*[a-zA-Z]", ""):gsub("\r", "")
+        local body = block.text
+          :gsub("\27%[[%d;?]*[a-zA-Z]", "")
+          :gsub("%^%[%[[%d;?]*%a", "")
+          :gsub("\r", "")
         local text = vim.split(body, "\n", { plain = true })
         local lines, groups = {}, {}
         for _, line in ipairs(text) do
