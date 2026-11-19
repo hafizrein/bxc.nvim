@@ -163,6 +163,8 @@ function M.chafa_rows(path, cols, rows)
   local res = vim.system({
     "chafa",
     "--format", "symbols",
+    "--symbols", "block", -- block glyphs, not the default symbol alphabet: at 40-55
+    -- columns the symbol alphabet reads as noise, blocks read as a picture
     "--colors", "256",
     "--size", string.format("%dx%d", cols, rows),
     "--stretch",
