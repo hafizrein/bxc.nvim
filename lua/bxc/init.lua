@@ -37,6 +37,11 @@ function M.commands()
     live.open({ split = cmd.bang })
   end, { bang = true, desc = "bxc: live VM desktop window (:BxcWindow! for a split)" })
 
+  vim.api.nvim_create_user_command("BxcStream", function(cmd)
+    local stream = require("bxc.stream")
+    stream.open({ session = cmd.args ~= "" and cmd.args or nil })
+  end, { nargs = "?", complete = "file", desc = "bxc: omp's live session, with screenshots inline" })
+
   vim.api.nvim_create_user_command("BxcLive", function()
     local events = require("bxc.events")
     local phases = events.read(config.events_file())

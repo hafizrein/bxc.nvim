@@ -9,6 +9,17 @@ M.defaults = {
   api = nil, -- default: https://api.boxcompute.ai/api/v2
   token = nil, -- else $BXC_TOKEN, else <home>/token, else ~/boxcompute/credential
 
+  -- The live agent stream (:BxcStream): follows omp's own session transcript and renders
+  -- what it is doing, with each screenshot it receives drawn inline.
+  stream = {
+    width = 78,
+    refresh_ms = 400,
+    art_cols = 54,
+    art_rows = 13,
+    sessions_dir = nil, -- default: <omp agent dir>/sessions
+    follow_newest = true, -- switch to a new session when one starts
+  },
+
   -- The live VM window (:BxcWindow). refresh_ms is a poll interval, not a frame rate:
   -- each frame is one screenshot fetch, so keep it honest rather than fast.
   live = {
